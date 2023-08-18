@@ -4,8 +4,8 @@ use crate::UFrac8;
 
 #[test]
 fn to_fraction() {
-    assert_eq!(UFrac8::from_bits(0b0001_1111).to_fraction(), (1, 0));
-    assert_eq!(UFrac8::from_bits(0b0000_0001).to_fraction(), (1, 1));
+    assert_eq!(UFrac8::INFINITY.to_fraction(), (1, 0));
+    assert_eq!(UFrac8::ONE.to_fraction(), (1, 1));
     assert_eq!(UFrac8::from_bits(0b0010_0000).to_fraction(), (1, 2));
     assert_eq!(UFrac8::from_bits(0b0010_0001).to_fraction(), (2, 1));
     assert_eq!(UFrac8::from_bits(0b1011_1111).to_fraction(), (6, 1));
@@ -19,18 +19,9 @@ fn to_fraction() {
 
 #[test]
 fn invert() {
-    assert_eq!(
-        UFrac8::from_bits(0b0000_0000).invert().to_fraction(),
-        (1, 0)
-    );
-    assert_eq!(
-        UFrac8::from_bits(0b0000_0001).invert().to_fraction(),
-        (1, 1)
-    );
-    assert_eq!(
-        UFrac8::from_bits(0b0001_1111).invert().to_fraction(),
-        (0, 1)
-    );
+    assert_eq!(UFrac8::ZERO.invert().to_fraction(), (1, 0));
+    assert_eq!(UFrac8::ONE.invert().to_fraction(), (1, 1));
+    assert_eq!(UFrac8::INFINITY.invert().to_fraction(), (0, 1));
     assert_eq!(
         UFrac8::from_bits(0b1000_0010).invert().to_fraction(),
         (7, 4)
@@ -45,7 +36,7 @@ fn from_u8() {
 }
 
 #[test]
-fn from_f32() {
+fn from_f64() {
     assert_eq!(UFrac8::try_from(1.0).unwrap().to_fraction(), (1, 1));
     assert_eq!(UFrac8::try_from(0.5).unwrap().to_fraction(), (1, 2));
     println!("{}", UFrac8::try_from(1.618).unwrap());

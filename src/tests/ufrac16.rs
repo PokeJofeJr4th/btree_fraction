@@ -33,7 +33,7 @@ fn from_u8() {
 }
 
 #[test]
-fn from_f32() {
+fn from_f64() {
     assert_eq!(UFrac16::try_from(1.0).unwrap().to_fraction(), (1, 1));
     assert_eq!(UFrac16::try_from(0.5).unwrap().to_fraction(), (1, 2));
     println!("{}", UFrac16::try_from(1.618).unwrap());

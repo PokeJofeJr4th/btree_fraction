@@ -73,6 +73,7 @@ impl Ord for UFrac8 {
 impl UFrac8 {
     pub const ZERO: Self = Self(0);
     pub const ONE: Self = Self(1);
+    pub const GOLDEN_RATIO: Self = Self(0b1010_0101);
     pub const E: Self = Self(0b1010_1011);
     pub const PI: Self = Self(0b1100_0111);
     pub const INFINITY: Self = Self(0b0001_1111);
@@ -128,9 +129,9 @@ impl UFrac8 {
     #[must_use]
     pub const fn invert(self) -> Self {
         if self.0 == 0 {
-            Self(0b0001_1111)
+            Self::INFINITY
         } else if self.0 == 1 {
-            Self(0b0000_0001)
+            Self::ONE
         } else {
             Self((self.0 & 0b1110_0000) + (!self.0 & ((1 << self.precision()) - 1)))
         }
@@ -161,9 +162,9 @@ impl TryFrom<u8> for UFrac8 {
     type Error = ();
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         if value == 0 {
-            Ok(Self(0))
+            Ok(Self::ZERO)
         } else if value == 1 {
-            Ok(Self(1))
+            Ok(Self::ONE)
         } else if value <= 6 {
             Ok(Self(((value - 1) << 5) + ((1 << (value - 1)) - 1)))
         } else {
@@ -175,23 +176,24 @@ impl TryFrom<u8> for UFrac8 {
 #[allow(
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss,
+    clippy::cast_lossless,
     clippy::cast_precision_loss
 )]
-impl TryFrom<f32> for UFrac8 {
+impl TryFrom<f64> for UFrac8 {
     type Error = ();
-    fn try_from(value: f32) -> Result<Self, Self::Error> {
+    fn try_from(value: f64) -> Result<Self, Self::Error> {
         if value == 0.0 {
             #[cfg(test)]
             println!("{value} is 0");
-            return Ok(Self(0));
-        } else if (value - 1.0).abs() < f32::EPSILON {
+            return Ok(Self::ZERO);
+        } else if (value - 1.0).abs() < f64::EPSILON {
             #[cfg(test)]
             println!("{value} is 1");
-            return Ok(Self(1));
+            return Ok(Self::ONE);
         } else if value.is_infinite() {
             #[cfg(test)]
             println!("{value} is infinite");
-            return Ok(Self(0b0001_1111));
+            return Ok(Self::INFINITY);
         }
         let mut lower_num = 0;
         let mut lower_denom = 1;
@@ -209,7 +211,7 @@ impl TryFrom<f32> for UFrac8 {
             if precision >= 6 {
                 break;
             }
-            match (mid_num as f32).partial_cmp(&(value * mid_denom as f32)) {
+            match (mid_num as f64).partial_cmp(&(value * mid_denom as f64)) {
                 Some(Ordering::Greater) => {
                     #[cfg(test)]
                     println!("{lower_num}/{lower_denom} < {value} < {mid_num}/{mid_denom}");
@@ -235,7 +237,7 @@ impl TryFrom<f32> for UFrac8 {
             }
             precision += 1;
         }
-        match (mid_num as f32).partial_cmp(&(value * mid_denom as f32)) {
+        match (mid_num as f64).partial_cmp(&(value * mid_denom as f64)) {
             Some(Ordering::Greater) => Ok(Self(upper_steps + (upper_precision << 5))),
             Some(Ordering::Equal) | None => Ok(Self(steps + (precision << 5))),
             Some(Ordering::Less) => Ok(Self(lower_steps + (lower_precision << 5))),
