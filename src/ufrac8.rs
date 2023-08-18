@@ -68,7 +68,9 @@ impl Ord for UFrac8 {
 }
 
 impl UFrac8 {
-    pub const PI: Self = Self(1);
+    pub const E: Self = Self(0b1010_1011);
+    pub const INFINITY: Self = Self(0b0001_1111);
+    pub const PI: Self = Self(0b1100_0111);
 
     /// Convert a `BTreeFraction` into two `u8`s representing the numerator and denominator. Infinity is represented by `(1, 0)`.
     ///
