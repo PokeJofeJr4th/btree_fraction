@@ -71,9 +71,11 @@ impl Ord for UFrac16 {
 }
 
 impl UFrac16 {
-    pub const INFINITY: Self = Self(0x0fff);
     pub const ZERO: Self = Self(0);
     pub const ONE: Self = Self(1);
+    pub const E: Self = Self(0xc05b);
+    pub const PI: Self = Self(0xdc07);
+    pub const INFINITY: Self = Self(0x0fff);
 
     /// Convert a `BTreeFraction` into two `u8`s representing the numerator and denominator. Infinity is represented by `(1, 0)`.
     ///
