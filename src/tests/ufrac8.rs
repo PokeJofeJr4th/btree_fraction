@@ -24,11 +24,13 @@ fn invert() {
         UFrac8::from_bits(0b0001_0010).invert().to_fraction(),
         (7, 4)
     );
+    assert_eq!(UFrac8::MIN.invert(), UFrac8::MAX);
+    assert_eq!(UFrac8::MAX.invert(), UFrac8::MIN);
 }
 
 #[test]
 fn from_u8() {
-    for i in 0..8 {
+    for i in 0..=8 {
         assert_eq!(UFrac8::try_from(i).unwrap().to_fraction(), (i, 1));
     }
 }

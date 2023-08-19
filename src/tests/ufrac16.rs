@@ -20,11 +20,13 @@ fn to_fraction() {
 fn invert() {
     assert_eq!(UFrac16::ONE.invert().to_fraction(), (1, 1));
     assert_eq!(UFrac16::from_bits(0x0012).invert().to_fraction(), (7, 4));
+    assert_eq!(UFrac16::MIN.invert(), UFrac16::MAX);
+    assert_eq!(UFrac16::MAX.invert(), UFrac16::MIN);
 }
 
 #[test]
 fn from_u16() {
-    for i in 0..16 {
+    for i in 0..=16 {
         assert_eq!(UFrac16::try_from(i).unwrap().to_fraction(), (i, 1));
     }
 }

@@ -154,7 +154,7 @@ impl UFrac16 {
     #[must_use]
     #[allow(clippy::cast_possible_truncation)]
     pub const fn precision(self) -> u16 {
-        16 - self.0.leading_zeros() as u16
+        15u16.saturating_sub(self.0.leading_zeros() as u16)
     }
 }
 
@@ -163,6 +163,8 @@ impl TryFrom<u16> for UFrac16 {
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         if value == 0 {
             Ok(Self::ZERO)
+        } else if value == 16 {
+            Ok(Self(u16::MAX))
         } else if value <= 15 {
             Ok(Self((1u16 << value).wrapping_sub(1)))
         } else {

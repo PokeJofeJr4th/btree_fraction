@@ -49,7 +49,7 @@ impl Ord for UFrac32 {
         match lhs_precision.cmp(&rhs_precision) {
             Ordering::Equal => Ordering::Equal,
             Ordering::Greater => {
-                if self.0 & (1 << (rhs_precision)) == 0 {
+                if self.0 & (1 << rhs_precision) == 0 {
                     Ordering::Less
                 } else {
                     Ordering::Greater
@@ -58,7 +58,7 @@ impl Ord for UFrac32 {
             Ordering::Less => {
                 #[cfg(test)]
                 println!("rhs more specific");
-                if other.0 & (1 << (lhs_precision)) == 0 {
+                if other.0 & (1 << lhs_precision) == 0 {
                     #[cfg(test)]
                     println!("it's a 0");
                     Ordering::Greater
@@ -162,7 +162,7 @@ impl UFrac32 {
 
     #[must_use]
     pub const fn precision(self) -> u32 {
-        32 - self.0.leading_zeros()
+        31u32.saturating_sub(self.0.leading_zeros())
     }
 }
 
@@ -171,6 +171,8 @@ impl TryFrom<u32> for UFrac32 {
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         if value == 0 {
             Ok(Self::ZERO)
+        } else if value == 32 {
+            Ok(Self(u32::MAX))
         } else if value <= 31 {
             Ok(Self((1u32 << value).wrapping_sub(1)))
         } else {

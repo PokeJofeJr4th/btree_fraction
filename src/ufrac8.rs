@@ -149,7 +149,7 @@ impl UFrac8 {
     #[must_use]
     #[allow(clippy::cast_possible_truncation)]
     pub const fn precision(self) -> u8 {
-        8 - self.0.leading_zeros() as u8
+        7u8.saturating_sub(self.0.leading_zeros() as u8)
     }
 }
 
@@ -158,6 +158,8 @@ impl TryFrom<u8> for UFrac8 {
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         if value == 0 {
             Ok(Self::ZERO)
+        } else if value == 8 {
+            Ok(Self(u8::MAX))
         } else if value <= 7 {
             Ok(Self((1u8 << value).wrapping_sub(1)))
         } else {

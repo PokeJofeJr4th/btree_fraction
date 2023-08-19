@@ -24,11 +24,13 @@ fn invert() {
         UFrac32::from_bits(0x0000_0012).invert().to_fraction(),
         (7, 4)
     );
+    assert_eq!(UFrac32::MIN.invert(), UFrac32::MAX);
+    assert_eq!(UFrac32::MAX.invert(), UFrac32::MIN);
 }
 
 #[test]
 fn from_u32() {
-    for i in 0..32 {
+    for i in 0..=32 {
         assert_eq!(UFrac32::try_from(i).unwrap().to_fraction(), (i, 1));
     }
 }
