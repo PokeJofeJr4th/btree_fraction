@@ -10,7 +10,7 @@ use std::{
 /// `0b001x_xxxx`
 ///
 /// `0b1xxx_xxxx`
-#[derive(PartialEq, Eq, Default, Clone, Copy)]
+#[derive(PartialEq, Eq, Default, Clone, Copy, Hash)]
 pub struct UFrac8(u8);
 
 impl Debug for UFrac8 {
@@ -126,10 +126,10 @@ impl UFrac8 {
 
     #[must_use]
     pub fn invert(self) -> Self {
-        let precision = self.precision();
         if self.0 == 0 {
             Self::MAX
         } else {
+            let precision = self.precision();
             Self((1 << precision) | (!self.0 & ((1 << precision) - 1)))
         }
     }
@@ -161,7 +161,7 @@ impl TryFrom<u8> for UFrac8 {
         if value == 0 {
             Ok(Self::ZERO)
         } else if value <= 6 {
-            Ok(Self((1 << (value - 1)) + ((1 << (value - 1)) - 1)))
+            Ok(Self((1u8 << value).wrapping_sub(1)))
         } else {
             Err(())
         }
@@ -225,9 +225,9 @@ impl TryFrom<f64> for UFrac8 {
             precision += 1;
         }
         match (mid_num as f64).partial_cmp(&(value * mid_denom as f64)) {
-            Some(Ordering::Greater) => Ok(Self(upper_steps + (1 << upper_precision))),
-            Some(Ordering::Equal) | None => Ok(Self(steps + (1 << precision))),
-            Some(Ordering::Less) => Ok(Self(lower_steps + (1 << lower_precision))),
+            Some(Ordering::Greater) => Ok(Self(upper_steps | (1 << upper_precision))),
+            Some(Ordering::Equal) | None => Ok(Self(steps | (1 << precision))),
+            Some(Ordering::Less) => Ok(Self(lower_steps | (1 << lower_precision))),
         }
     }
 }

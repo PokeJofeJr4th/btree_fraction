@@ -4,26 +4,24 @@ use crate::UFrac32;
 
 #[test]
 fn to_fraction() {
-    assert_eq!(UFrac32::INFINITY.to_fraction(), (1, 0));
     assert_eq!(UFrac32::ONE.to_fraction(), (1, 1));
-    assert_eq!(UFrac32::from_bits(0x0800_0000).to_fraction(), (1, 2));
-    assert_eq!(UFrac32::from_bits(0x0800_0001).to_fraction(), (2, 1));
-    assert_eq!(UFrac32::from_bits(0x2800_001f).to_fraction(), (6, 1));
-    assert_eq!(UFrac32::from_bits(0x3000_003f).to_fraction(), (7, 1));
-    assert_eq!(UFrac32::from_bits(0x2800_0000).to_fraction(), (1, 6));
-    assert_eq!(UFrac32::from_bits(0x3000_0000).to_fraction(), (1, 7));
-    assert_eq!(UFrac32::from_bits(0x2000_0002).to_fraction(), (4, 7));
-    assert_eq!(UFrac32::from_bits(0x2000_0005).to_fraction(), (8, 5));
-    assert_eq!(UFrac32::from_bits(0x1800_0005).to_fraction(), (5, 3));
+    assert_eq!(UFrac32::from_bits(0x0000_0002).to_fraction(), (1, 2));
+    assert_eq!(UFrac32::from_bits(0x0000_0003).to_fraction(), (2, 1));
+    assert_eq!(UFrac32::from_bits(0x0000_003f).to_fraction(), (6, 1));
+    assert_eq!(UFrac32::from_bits(0x0000_007f).to_fraction(), (7, 1));
+    assert_eq!(UFrac32::from_bits(0x0000_0020).to_fraction(), (1, 6));
+    assert_eq!(UFrac32::from_bits(0x0000_0040).to_fraction(), (1, 7));
+    assert_eq!(UFrac32::from_bits(0x0000_0012).to_fraction(), (4, 7));
+    assert_eq!(UFrac32::from_bits(0x0000_0015).to_fraction(), (8, 5));
+    assert_eq!(UFrac32::from_bits(0x0000_000d).to_fraction(), (5, 3));
 }
 
 #[test]
 fn invert() {
-    assert_eq!(UFrac32::ZERO.invert().to_fraction(), (1, 0));
+    assert_eq!(UFrac32::ZERO.invert().to_fraction(), (32, 1));
     assert_eq!(UFrac32::ONE.invert().to_fraction(), (1, 1));
-    assert_eq!(UFrac32::INFINITY.invert().to_fraction(), (0, 1));
     assert_eq!(
-        UFrac32::from_bits(0x2000_0002).invert().to_fraction(),
+        UFrac32::from_bits(0x0000_0012).invert().to_fraction(),
         (7, 4)
     );
 }
