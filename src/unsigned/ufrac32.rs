@@ -74,11 +74,16 @@ impl Ord for UFrac32 {
 
 impl UFrac32 {
     pub const ZERO: Self = Self(0);
+    /// Smallest non-zero value represented by `UFrac32`; equal to 1/32
     pub const MIN: Self = Self(0x8000_0000);
     pub const ONE: Self = Self(1);
+    /// The Golden Ratio approximated as a `UFrac32`; equal to 2178309/1346269 or 1.61803398875
     pub const GOLDEN_RATIO: Self = Self(0x5555_5555);
+    /// Euler's Number approximated as a `UFrac32`; equal to 28667/10546 or 2.71828181301
     pub const E: Self = Self(0x4017_E85B);
+    /// Pi approximated as a `UFrac32`; equal to 3861/1229 or 3.14157851912
     pub const PI: Self = Self(0xe5ff_fc07);
+    /// Highest value represented by `UFrac32`; equal to 32
     pub const MAX: Self = Self(0xffff_ffff);
 
     /// Convert a `BTreeFraction` into two `u8`s representing the numerator and denominator. Infinity is represented by `(1, 0)`.
@@ -122,6 +127,9 @@ impl UFrac32 {
         (mid_num, mid_denom)
     }
 
+    /// Convert to a `UFrac8`. For values with 7 or fewer bits of precision, this conversion is lossless. For values with 8 or more bits of precision, this conversion truncates excess data.
+    ///
+    /// If you would like to limit this to a lossless conversion, try `UFrac8::try_from`.
     #[must_use]
     pub fn to_ufrac8_lossy(self) -> UFrac8 {
         if let Ok(frac8) = UFrac8::try_from(self) {
@@ -132,6 +140,9 @@ impl UFrac32 {
     }
 
     #[must_use]
+    /// Convert to a `UFrac16`. For values with 15 or fewer bits of precision, this conversion is lossless. For values with 8 or more bits of precision, this conversion truncates excess data.
+    ///
+    /// If you would like to limit this to a lossless conversion, try `UFrac8::try_from`.
     pub fn to_ufrac16_lossy(self) -> UFrac16 {
         if let Ok(frac8) = UFrac16::try_from(self) {
             return frac8;
@@ -140,26 +151,45 @@ impl UFrac32 {
         UFrac16::from_bits((self.0 & 0x0000_ffff | 0x0000_8000) as u16)
     }
 
+    /// The inverse of a `UFrac32`. For any nonzero value, `self.invert().invert()` is guaranteed to be equal to `self`.
+    ///
+    /// # Panics
+    /// If `self` is equal to `0`
     #[must_use]
     pub const fn invert(self) -> Self {
         if self.0 == 0 {
-            Self::MAX
+            panic!("Can't invert `0/1`")
         } else {
-            let precision = self.precision();
-            Self((1 << precision) | (!self.0 & ((1 << precision) - 1)))
+            Self(self.0 ^ ((1 << self.precision()) - 1))
         }
     }
 
+    /// The inverse of a `UFrac32`. If `self` is equal to `0`, returns `None`.
+    ///
+    /// For any nonzero value, `self.invert().unwrap().invert().unwrap()` is guaranteed to be equal to `self`.
+    #[must_use]
+    pub const fn try_invert(self) -> Option<Self> {
+        if self.0 == 0 {
+            None
+        } else {
+            Some(Self(self.0 ^ ((1 << self.precision()) - 1)))
+        }
+    }
+
+    /// Construct a `UFrac32` from a bit pattern
     #[must_use]
     pub const fn from_bits(bits: u32) -> Self {
         Self(bits)
     }
 
+    /// Get the bit pattern out of a `UFrac32`
     #[must_use]
     pub const fn to_bits(self) -> u32 {
         self.0
     }
 
+    /// Get the precision of a value. This will be a value from 0 to 31 representing how many steps down the Farey tree the fraction is.
+    /// If `self` is equal to `0` or `1`, this function will return `0`.
     #[must_use]
     pub const fn precision(self) -> u32 {
         31u32.saturating_sub(self.0.leading_zeros())
@@ -168,6 +198,7 @@ impl UFrac32 {
 
 impl TryFrom<u32> for UFrac32 {
     type Error = ();
+    /// Try to create an integer `UFrac32`. Returns `Err(())` if passed a value greater than or equal to 33.
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         if value == 0 {
             Ok(Self::ZERO)
@@ -189,11 +220,14 @@ impl TryFrom<u32> for UFrac32 {
 )]
 impl TryFrom<f64> for UFrac32 {
     type Error = ();
+    /// Try to create a `UFrac32` approximating a float. Returns `Err(())` if passed a negative or `NaN` value.
     fn try_from(value: f64) -> Result<Self, Self::Error> {
         if value == 0.0 {
             #[cfg(test)]
             println!("{value} is 0");
             return Ok(Self::ZERO);
+        } else if value.is_infinite() || value.is_nan() {
+            return Err(());
         }
         let mut lower_num = 0;
         let mut lower_denom = 1;

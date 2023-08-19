@@ -18,7 +18,6 @@ fn to_fraction() {
 
 #[test]
 fn invert() {
-    assert_eq!(UFrac32::ZERO.invert().to_fraction(), (32, 1));
     assert_eq!(UFrac32::ONE.invert().to_fraction(), (1, 1));
     assert_eq!(
         UFrac32::from_bits(0x0000_0012).invert().to_fraction(),

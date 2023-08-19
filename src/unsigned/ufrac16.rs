@@ -127,9 +127,9 @@ impl UFrac16 {
         (mid_num, mid_denom)
     }
 
-    /// Convert to a `UFrac8`. For values with fewer than 7 bits of precision, this conversion is lossless. For values with 8 or more bits of precision, this conversion truncates excess data.
+    /// Convert to a `UFrac8`. For values with 7 or fewer bits of precision, this conversion is lossless. For values with 8 or more bits of precision, this conversion truncates excess data.
     ///
-    /// If you would like to limit this to a lossless conversion, try `UFrac8::try_from(value: UFrac16)`.
+    /// If you would like to limit this to a lossless conversion, try `UFrac8::try_from`.
     #[must_use]
     pub fn to_ufrac8_lossy(self) -> UFrac8 {
         if let Ok(frac8) = UFrac8::try_from(self) {
