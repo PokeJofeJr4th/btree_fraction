@@ -186,10 +186,10 @@ impl UFrac8 {
     #[must_use]
     /// Get the fraction's left child node on the Farey tree. Returns `None` if called on `0` or a value with 7 bits of precision.
     pub const fn left_child(self) -> Option<Self> {
-        let precision = self.precision();
-        if self.0 == 0 || precision == 7 {
+        if self.0 == 0 || self.is_leaf() {
             None
         } else {
+            let precision = self.precision();
             Some(Self(self.0 & !(1 << precision) | (1 << (precision + 1))))
         }
     }
@@ -197,12 +197,17 @@ impl UFrac8 {
     #[must_use]
     /// Get the fraction's right child node on the Farey tree. Returns `None` if called on a `0` or a value with 7 bits of precision.
     pub const fn right_child(self) -> Option<Self> {
-        let precision = self.precision();
-        if self.0 == 0 || precision == 7 {
+        if self.0 == 0 || self.is_leaf() {
             None
         } else {
-            Some(Self(self.0 | (1 << (precision + 1))))
+            Some(Self(self.0 | (1 << (self.precision() + 1))))
         }
+    }
+
+    #[must_use]
+    /// Check if the value has the highest possible precision for `UFrac8`. If `true`, `left_child()` and `right_child()` will both return `None`.
+    pub const fn is_leaf(self) -> bool {
+        self.0 & (1 << 7) != 0
     }
 }
 

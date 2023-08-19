@@ -93,3 +93,15 @@ fn tree() {
     assert_eq!(UFrac32::ZERO.right_child(), None);
     assert_eq!(UFrac32::ZERO.parent(), None);
 }
+
+
+#[test]
+fn is_leaf() {
+    assert!(!UFrac32::ZERO.is_leaf());
+    assert!(UFrac32::MIN.is_leaf());
+    assert!(!UFrac32::ONE.is_leaf());
+    assert!(!UFrac32::GOLDEN_RATIO.is_leaf());
+    assert!(!UFrac32::E.is_leaf());
+    assert!(UFrac32::PI.is_leaf());
+    assert!(UFrac32::MAX.is_leaf());
+}
