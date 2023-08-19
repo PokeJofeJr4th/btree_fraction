@@ -171,6 +171,39 @@ impl UFrac8 {
     pub const fn precision(self) -> u8 {
         7u8.saturating_sub(self.0.leading_zeros() as u8)
     }
+
+    #[must_use]
+    /// Get the fraction's parent node on the Farey tree. Returns `None` if `self` is 0 or 1.
+    pub const fn parent(self) -> Option<Self> {
+        let precision = self.precision();
+        if precision == 0 {
+            None
+        } else {
+            Some(Self(self.0 ^ (1 << precision) | (1 << (precision - 1))))
+        }
+    }
+
+    #[must_use]
+    /// Get the fraction's left child node on the Farey tree. Returns `None` if called on `0` or a value with 7 bits of precision.
+    pub const fn left_child(self) -> Option<Self> {
+        let precision = self.precision();
+        if self.0 == 0 || precision == 7 {
+            None
+        } else {
+            Some(Self(self.0 & !(1 << precision) | (1 << (precision + 1))))
+        }
+    }
+
+    #[must_use]
+    /// Get the fraction's right child node on the Farey tree. Returns `None` if called on a `0` or a value with 7 bits of precision.
+    pub const fn right_child(self) -> Option<Self> {
+        let precision = self.precision();
+        if self.0 == 0 || precision == 7 {
+            None
+        } else {
+            Some(Self(self.0 | (1 << (precision + 1))))
+        }
+    }
 }
 
 impl TryFrom<u8> for UFrac8 {

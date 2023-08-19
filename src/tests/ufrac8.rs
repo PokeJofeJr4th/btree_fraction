@@ -74,3 +74,14 @@ fn ordering() {
         Ordering::Greater
     );
 }
+
+#[test]
+fn tree() {
+    assert_eq!(UFrac8::ONE.left_child().unwrap(), UFrac8::from_bits(2));
+    assert_eq!(UFrac8::ONE.right_child().unwrap(), UFrac8::from_bits(3));
+    assert_eq!(UFrac8::ONE.parent(), None);
+
+    assert_eq!(UFrac8::ZERO.left_child(), None);
+    assert_eq!(UFrac8::ZERO.right_child(), None);
+    assert_eq!(UFrac8::ZERO.parent(), None);
+}
