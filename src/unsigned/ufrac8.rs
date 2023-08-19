@@ -77,18 +77,19 @@ impl Ord for UFrac8 {
 
 impl UFrac8 {
     pub const ZERO: Self = Self(0);
+    /// Lowest non-zero value represented by `UFrac8`; equal to 1/8
     pub const MIN: Self = Self(0b1000_0000);
     pub const ONE: Self = Self(1);
+    /// The Golden Ratio approximated as a `UFrac8`; equal to 21/13 or 1.61538461538
     pub const GOLDEN_RATIO: Self = Self(0b0101_0101);
+    /// Euler's Number approximated as a `UFrac8`; equal to 19/7 or 2.71428571429
     pub const E: Self = Self(0b0101_1011);
+    /// Pi approximated as a `UFrac8`; equal to 16/5 or 3.2
     pub const PI: Self = Self(0b1000_0111);
+    /// Highest value represented by `UFrac8`; equal to 8
     pub const MAX: Self = Self(0b1111_1111);
 
-    /// Convert a `BTreeFraction` into two `u8`s representing the numerator and denominator. Infinity is represented by `(1, 0)`.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the internal format is an invalid bit pattern. This should only happen if you manually set the bits.
+    /// Convert a `UFrac8` into two `u8`s representing the numerator and denominator.
     #[must_use]
     pub fn to_fraction(self) -> (u8, u8) {
         let precision = self.precision();
@@ -126,26 +127,45 @@ impl UFrac8 {
         (mid_num, mid_denom)
     }
 
+    /// The inverse of a `UFrac8`. For any nonzero `UFrac8`, `self.invert().invert()` is guaranteed to be equal to `self`.
+    ///
+    /// # Panics
+    /// If `self` is equal to `0`
     #[must_use]
     pub const fn invert(self) -> Self {
         if self.0 == 0 {
-            Self::MAX
+            panic!("Can't invert `0/1`")
         } else {
-            let precision = self.precision();
-            Self((1 << precision) | (!self.0 & ((1 << precision) - 1)))
+            Self(self.0 ^ ((1 << self.precision()) - 1))
         }
     }
 
+    /// The inverse of a `UFrac8`. If `self` is equal to `0`, returns `None`.
+    ///
+    /// For any nonzero value, `self.invert().unwrap().invert().unwrap()` is guaranteed to be equal to `self`.
+    #[must_use]
+    pub const fn try_invert(self) -> Option<Self> {
+        if self.0 == 0 {
+            None
+        } else {
+            Some(Self(self.0 ^ ((1 << self.precision()) - 1)))
+        }
+    }
+
+    /// Construct a `UFrac8` from a bit pattern.
     #[must_use]
     pub const fn from_bits(bits: u8) -> Self {
         Self(bits)
     }
 
+    /// Get the bit pattern out of a `UFrac8`
     #[must_use]
     pub const fn to_bits(self) -> u8 {
         self.0
     }
 
+    /// Get the precision of a `UFrac8`. This will be a value from 0 to 7 representing how many steps down the Farey tree the fraction is.
+    /// If `self` is equal to `0` or `1`, this function will return `0`.
     #[must_use]
     #[allow(clippy::cast_possible_truncation)]
     pub const fn precision(self) -> u8 {
@@ -155,6 +175,7 @@ impl UFrac8 {
 
 impl TryFrom<u8> for UFrac8 {
     type Error = ();
+    /// Try to create an integer `UFrac8`. Returns `Err(())` if passed a value greater than or equal to 9.
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         if value == 0 {
             Ok(Self::ZERO)
@@ -176,11 +197,14 @@ impl TryFrom<u8> for UFrac8 {
 )]
 impl TryFrom<f64> for UFrac8 {
     type Error = ();
+    /// Try to create a `UFrac8` approximating a float. Returns `Err(())` if passed a negative or `NaN` value.
     fn try_from(value: f64) -> Result<Self, Self::Error> {
         if value == 0.0 {
             #[cfg(test)]
             println!("{value} is 0");
             return Ok(Self::ZERO);
+        } else if value.is_infinite() || value.is_nan() {
+            return Err(());
         }
         let mut lower_num = 0;
         let mut lower_denom = 1;
@@ -234,6 +258,7 @@ impl TryFrom<f64> for UFrac8 {
 
 impl TryFrom<UFrac16> for UFrac8 {
     type Error = ();
+    /// Try to fit a `UFrac16` into a `UFrac8`. Returns `Err(())` if passed a value with 8 or more bits of precision. If you would like to truncate the value instead, try `UFrac16::to_ufrac8_lossy`.
     fn try_from(value: UFrac16) -> Result<Self, Self::Error> {
         Ok(Self(u8::try_from(value.to_bits()).map_err(|_| ())?))
     }
@@ -241,6 +266,7 @@ impl TryFrom<UFrac16> for UFrac8 {
 
 impl TryFrom<UFrac32> for UFrac8 {
     type Error = ();
+    /// Try to fit a `UFrac32` into a `UFrac8`. Returns `Err(())` if passed a value with 8 or more bits of precision. If you would like to truncate the value instead, try `UFrac32::to_ufrac8_lossy`.
     fn try_from(value: UFrac32) -> Result<Self, Self::Error> {
         Ok(Self(u8::try_from(value.to_bits()).map_err(|_| ())?))
     }

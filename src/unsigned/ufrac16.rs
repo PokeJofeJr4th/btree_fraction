@@ -74,11 +74,16 @@ impl Ord for UFrac16 {
 
 impl UFrac16 {
     pub const ZERO: Self = Self(0);
+    /// Lowest non-zero value represented by `UFrac16`; equal to 1/16
     pub const MIN: Self = Self(0x8000);
     pub const ONE: Self = Self(1);
-    pub const GOLDEN_RATIO: Self = Self(0xc555);
+    /// The Golden Ratio approximated as a `UFrac16`; equal to 987/610, or 1.61803278689
+    pub const GOLDEN_RATIO: Self = Self(0x5555);
+    /// Euler's Number approximated as a `UFrac16`; equal to 791/291, or 2.71821305842
     pub const E: Self = Self(0xA85B);
+    /// Pi approximated as a `UFrac16`; equal to 204/65, or 3.13846153846
     pub const PI: Self = Self(0xBC07);
+    /// Highest value represented by `UFrac16`; equal to 16
     pub const MAX: Self = Self(0xffff);
 
     /// Convert a `BTreeFraction` into two `u8`s representing the numerator and denominator. Infinity is represented by `(1, 0)`.
@@ -122,6 +127,9 @@ impl UFrac16 {
         (mid_num, mid_denom)
     }
 
+    /// Convert to a `UFrac8`. For values with fewer than 7 bits of precision, this conversion is lossless. For values with 8 or more bits of precision, this conversion truncates excess data.
+    ///
+    /// If you would like to limit this to a lossless conversion, try `UFrac8::try_from(value: UFrac16)`.
     #[must_use]
     pub fn to_ufrac8_lossy(self) -> UFrac8 {
         if let Ok(frac8) = UFrac8::try_from(self) {
@@ -131,26 +139,45 @@ impl UFrac16 {
         UFrac8::from_bits((self.0 & 0x00ff | 0x0080) as u8)
     }
 
+    /// The inverse of a `UFrac16`. For any nonzero value, `self.invert().invert()` is guaranteed to be equal to `self`.
+    ///
+    /// # Panics
+    /// If `self` is equal to `0`
     #[must_use]
     pub const fn invert(self) -> Self {
         if self.0 == 0 {
-            Self::MAX
+            panic!("Can't invert `0/1`")
         } else {
-            let precision = self.precision();
-            Self((1 << precision) | (!self.0 & ((1 << precision) - 1)))
+            Self(self.0 ^ ((1 << self.precision()) - 1))
         }
     }
 
+    /// The inverse of a `UFrac16`. If `self` is equal to `0`, returns `None`.
+    ///
+    /// For any nonzero value, `self.invert().unwrap().invert().unwrap()` is guaranteed to be equal to `self`.
+    #[must_use]
+    pub const fn try_invert(self) -> Option<Self> {
+        if self.0 == 0 {
+            None
+        } else {
+            Some(Self(self.0 ^ ((1 << self.precision()) - 1)))
+        }
+    }
+
+    /// Construct a `UFrac16` from a bit pattern
     #[must_use]
     pub const fn from_bits(bits: u16) -> Self {
         Self(bits)
     }
 
+    /// Get the bit pattern out of a `UFrac16`
     #[must_use]
     pub const fn to_bits(self) -> u16 {
         self.0
     }
 
+    /// Get the precision of a value. This will be a value from 0 to 15 representing how many steps down the Farey tree the fraction is.
+    /// If `self` is equal to `0` or `1`, this function will return `0`.
     #[must_use]
     #[allow(clippy::cast_possible_truncation)]
     pub const fn precision(self) -> u16 {
@@ -160,6 +187,7 @@ impl UFrac16 {
 
 impl TryFrom<u16> for UFrac16 {
     type Error = ();
+    /// Try to create an integer `UFrac16`. Returns `Err(())` if passed a value greater than or equal to 17.
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         if value == 0 {
             Ok(Self::ZERO)
@@ -181,11 +209,14 @@ impl TryFrom<u16> for UFrac16 {
 )]
 impl TryFrom<f64> for UFrac16 {
     type Error = ();
+    /// Try to create a `UFrac16` approximating a float. Returns `Err(())` if passed a negative or `NaN` value.
     fn try_from(value: f64) -> Result<Self, Self::Error> {
         if value == 0.0 {
             #[cfg(test)]
             println!("{value} is 0");
             return Ok(Self::ZERO);
+        } else if value.is_sign_negative() || value.is_nan() {
+            return Err(());
         }
         let mut lower_num = 0;
         let mut lower_denom = 1;

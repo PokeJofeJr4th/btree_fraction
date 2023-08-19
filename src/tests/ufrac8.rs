@@ -18,7 +18,6 @@ fn to_fraction() {
 
 #[test]
 fn invert() {
-    assert_eq!(UFrac8::ZERO.invert().to_fraction(), (8, 1));
     assert_eq!(UFrac8::ONE.invert().to_fraction(), (1, 1));
     assert_eq!(
         UFrac8::from_bits(0b0001_0010).invert().to_fraction(),
