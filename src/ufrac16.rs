@@ -132,7 +132,7 @@ impl UFrac16 {
     }
 
     #[must_use]
-    pub fn invert(self) -> Self {
+    pub const fn invert(self) -> Self {
         if self.0 == 0 {
             Self::MAX
         } else {
@@ -152,13 +152,9 @@ impl UFrac16 {
     }
 
     #[must_use]
-    pub fn precision(self) -> u16 {
-        for i in (0..16).rev() {
-            if self.0 & (1 << i) != 0 {
-                return i;
-            }
-        }
-        0
+    #[allow(clippy::cast_possible_truncation)]
+    pub const fn precision(self) -> u16 {
+        16 - self.0.leading_zeros() as u16
     }
 }
 

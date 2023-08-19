@@ -28,7 +28,7 @@ fn invert() {
 
 #[test]
 fn from_u8() {
-    for i in 0..=6 {
+    for i in 0..8 {
         assert_eq!(UFrac8::try_from(i).unwrap().to_fraction(), (i, 1));
     }
 }

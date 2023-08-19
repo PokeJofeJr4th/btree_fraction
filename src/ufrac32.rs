@@ -141,7 +141,7 @@ impl UFrac32 {
     }
 
     #[must_use]
-    pub fn invert(self) -> Self {
+    pub const fn invert(self) -> Self {
         if self.0 == 0 {
             Self::MAX
         } else {
@@ -161,13 +161,8 @@ impl UFrac32 {
     }
 
     #[must_use]
-    pub fn precision(self) -> u32 {
-        for i in (0..32).rev() {
-            if self.0 & (1 << i) != 0 {
-                return i;
-            }
-        }
-        0
+    pub const fn precision(self) -> u32 {
+        32 - self.0.leading_zeros()
     }
 }
 

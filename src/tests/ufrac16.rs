@@ -23,8 +23,8 @@ fn invert() {
 }
 
 #[test]
-fn from_u8() {
-    for i in 0..=6 {
+fn from_u16() {
+    for i in 0..16 {
         assert_eq!(UFrac16::try_from(i).unwrap().to_fraction(), (i, 1));
     }
 }
