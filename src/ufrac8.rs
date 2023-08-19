@@ -3,6 +3,8 @@ use std::{
     fmt::{Debug, Display},
 };
 
+use crate::{UFrac16, UFrac32};
+
 /// A fraction defined along a binary tree.
 ///
 /// 0s, 1, xs
@@ -229,5 +231,19 @@ impl TryFrom<f64> for UFrac8 {
             Some(Ordering::Equal) | None => Ok(Self(steps | (1 << precision))),
             Some(Ordering::Less) => Ok(Self(lower_steps | (1 << lower_precision))),
         }
+    }
+}
+
+impl TryFrom<UFrac16> for UFrac8 {
+    type Error = ();
+    fn try_from(value: UFrac16) -> Result<Self, Self::Error> {
+        Ok(Self(u8::try_from(value.to_bits()).map_err(|_| ())?))
+    }
+}
+
+impl TryFrom<UFrac32> for UFrac8 {
+    type Error = ();
+    fn try_from(value: UFrac32) -> Result<Self, Self::Error> {
+        Ok(Self(u8::try_from(value.to_bits()).map_err(|_| ())?))
     }
 }
