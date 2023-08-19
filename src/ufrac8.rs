@@ -3,11 +3,16 @@ use std::{
     fmt::{Debug, Display},
 };
 
+use crate::{UFrac16, UFrac32};
+
 /// A fraction defined along a binary tree.
-/// 3 bits of exponent, 6 bits of data
-/// `0b101x_xxxx`
-/// `0b11xx_xxxx`
-#[derive(PartialEq, Eq, Default, Clone, Copy)]
+///
+/// 0s, 1, xs
+///
+/// `0b001x_xxxx`
+///
+/// `0b1xxx_xxxx`
+#[derive(PartialEq, Eq, Default, Clone, Copy, Hash)]
 pub struct UFrac8(u8);
 
 impl Debug for UFrac8 {
@@ -72,13 +77,12 @@ impl Ord for UFrac8 {
 
 impl UFrac8 {
     pub const ZERO: Self = Self(0);
-    pub const MIN: Self = Self(0b1100_0000);
+    pub const MIN: Self = Self(0b1000_0000);
     pub const ONE: Self = Self(1);
-    pub const GOLDEN_RATIO: Self = Self(0b1010_0101);
-    pub const E: Self = Self(0b1010_1011);
-    pub const PI: Self = Self(0b1100_0111);
+    pub const GOLDEN_RATIO: Self = Self(0b0101_0101);
+    pub const E: Self = Self(0b0101_1011);
+    pub const PI: Self = Self(0b1000_0111);
     pub const MAX: Self = Self(0b1111_1111);
-    pub const INFINITY: Self = Self(0b0001_1111);
 
     /// Convert a `BTreeFraction` into two `u8`s representing the numerator and denominator. Infinity is represented by `(1, 0)`.
     ///
@@ -91,14 +95,8 @@ impl UFrac8 {
         #[cfg(test)]
         println!("{self:?}; precision = {precision}");
         if precision == 0 {
-            if self.0 == 0 {
-                return (0, 1);
-            } else if self.0 == 1 {
-                return (1, 1);
-            } else if self.0 == 0b0001_1111 {
-                return (1, 0);
-            }
-            panic!("Invalid bit pattern: {self:?}")
+            // self.0 is either 0 or 1
+            return (self.0, 1);
         }
         let mask = 0b1111_1111 >> (8 - precision);
         let masked_bits = self.0 & mask;
@@ -131,11 +129,10 @@ impl UFrac8 {
     #[must_use]
     pub const fn invert(self) -> Self {
         if self.0 == 0 {
-            Self::INFINITY
-        } else if self.0 == 1 {
-            Self::ONE
+            Self::MAX
         } else {
-            Self((self.0 & 0b1110_0000) + (!self.0 & ((1 << self.precision()) - 1)))
+            let precision = self.precision();
+            Self((1 << precision) | (!self.0 & ((1 << precision) - 1)))
         }
     }
 
@@ -150,13 +147,9 @@ impl UFrac8 {
     }
 
     #[must_use]
+    #[allow(clippy::cast_possible_truncation)]
     pub const fn precision(self) -> u8 {
-        let val = self.0 >> 5;
-        if val > 6 {
-            6
-        } else {
-            val
-        }
+        7u8.saturating_sub(self.0.leading_zeros() as u8)
     }
 }
 
@@ -165,10 +158,10 @@ impl TryFrom<u8> for UFrac8 {
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         if value == 0 {
             Ok(Self::ZERO)
-        } else if value == 1 {
-            Ok(Self::ONE)
-        } else if value <= 6 {
-            Ok(Self(((value - 1) << 5) + ((1 << (value - 1)) - 1)))
+        } else if value == 8 {
+            Ok(Self(u8::MAX))
+        } else if value <= 7 {
+            Ok(Self((1u8 << value).wrapping_sub(1)))
         } else {
             Err(())
         }
@@ -188,14 +181,6 @@ impl TryFrom<f64> for UFrac8 {
             #[cfg(test)]
             println!("{value} is 0");
             return Ok(Self::ZERO);
-        } else if (value - 1.0).abs() < f64::EPSILON {
-            #[cfg(test)]
-            println!("{value} is 1");
-            return Ok(Self::ONE);
-        } else if value.is_infinite() {
-            #[cfg(test)]
-            println!("{value} is infinite");
-            return Ok(Self::INFINITY);
         }
         let mut lower_num = 0;
         let mut lower_denom = 1;
@@ -210,7 +195,7 @@ impl TryFrom<f64> for UFrac8 {
         let mut precision = 0;
         let mut steps = 0;
         loop {
-            if precision >= 6 {
+            if precision >= 7 {
                 break;
             }
             match (mid_num as f64).partial_cmp(&(value * mid_denom as f64)) {
@@ -240,9 +225,23 @@ impl TryFrom<f64> for UFrac8 {
             precision += 1;
         }
         match (mid_num as f64).partial_cmp(&(value * mid_denom as f64)) {
-            Some(Ordering::Greater) => Ok(Self(upper_steps + (upper_precision << 5))),
-            Some(Ordering::Equal) | None => Ok(Self(steps + (precision << 5))),
-            Some(Ordering::Less) => Ok(Self(lower_steps + (lower_precision << 5))),
+            Some(Ordering::Greater) => Ok(Self(upper_steps | (1 << upper_precision))),
+            Some(Ordering::Equal) | None => Ok(Self(steps | (1 << precision))),
+            Some(Ordering::Less) => Ok(Self(lower_steps | (1 << lower_precision))),
         }
+    }
+}
+
+impl TryFrom<UFrac16> for UFrac8 {
+    type Error = ();
+    fn try_from(value: UFrac16) -> Result<Self, Self::Error> {
+        Ok(Self(u8::try_from(value.to_bits()).map_err(|_| ())?))
+    }
+}
+
+impl TryFrom<UFrac32> for UFrac8 {
+    type Error = ();
+    fn try_from(value: UFrac32) -> Result<Self, Self::Error> {
+        Ok(Self(u8::try_from(value.to_bits()).map_err(|_| ())?))
     }
 }
