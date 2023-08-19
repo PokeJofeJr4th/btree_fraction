@@ -123,6 +123,15 @@ impl UFrac16 {
     }
 
     #[must_use]
+    pub fn to_ufrac8_lossy(self) -> UFrac8 {
+        if let Ok(frac8) = UFrac8::try_from(self) {
+            return frac8;
+        }
+        #[allow(clippy::cast_possible_truncation)]
+        UFrac8::from_bits((self.0 & 0x00ff | 0x0080) as u8)
+    }
+
+    #[must_use]
     pub fn invert(self) -> Self {
         if self.0 == 0 {
             Self::MAX
