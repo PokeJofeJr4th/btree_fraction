@@ -164,6 +164,12 @@ impl UFrac16 {
         }
     }
 
+    /// The inverse of a `UFrac16`. If `self` is equal to `0`, returns `0`.
+    #[must_use]
+    pub const fn invert_unchecked(self) -> Self {
+        Self(self.0 ^ ((1 << self.precision()) - 1))
+    }
+
     /// Construct a `UFrac16` from a bit pattern
     #[must_use]
     pub const fn from_bits(bits: u16) -> Self {

@@ -25,6 +25,7 @@ fn invert() {
     );
     assert_eq!(UFrac8::MIN.invert(), UFrac8::MAX);
     assert_eq!(UFrac8::MAX.invert(), UFrac8::MIN);
+    assert_eq!(UFrac8::ZERO.invert_unchecked(), UFrac8::ZERO);
 }
 
 #[test]
