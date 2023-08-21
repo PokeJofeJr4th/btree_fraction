@@ -224,12 +224,26 @@ impl UFrac32 {
     }
 
     #[must_use]
-    /// Get the fraction's right child node on the Farey tree. Returns `None` if called on a `0` or a value with 31 bits of precision.
+    /// Get the fraction's right child node on the Farey tree. Returns `None` if called on `0` or a value with 31 bits of precision.
     pub const fn right_child(self) -> Option<Self> {
         if self.0 == 0 || self.is_leaf() {
             None
         } else {
             Some(Self(self.0 | (1 << (self.precision() + 1))))
+        }
+    }
+
+    #[must_use]
+    /// Get the fraction's child nodes on the Farey tree. Returns `None` if called on `0` or a value with 31 bits of precision.
+    ///
+    /// Equivalent to `(self.left_child()?,self.right_child()?)`
+    pub const fn children(self) -> Option<(Self, Self)> {
+        if self.0 == 0 || self.is_leaf() {
+            None
+        } else {
+            let precision = self.precision();
+            let right_child = self.0 | (1 << (self.precision() + 1));
+            Some((Self(right_child & !(1 << precision)), Self(right_child)))
         }
     }
 

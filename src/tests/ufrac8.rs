@@ -36,6 +36,20 @@ fn from_u8() {
 }
 
 #[test]
+fn children() {
+    for i in 1..=255 {
+        let frac = UFrac8::from_bits(i);
+        if frac.is_leaf() {
+            continue;
+        }
+        assert_eq!(
+            frac.children().unwrap(),
+            (frac.left_child().unwrap(), frac.right_child().unwrap())
+        );
+    }
+}
+
+#[test]
 fn from_f64() {
     assert_eq!(UFrac8::try_from(1.0).unwrap().to_fraction(), (1, 1));
     assert_eq!(UFrac8::try_from(0.5).unwrap().to_fraction(), (1, 2));
