@@ -225,6 +225,23 @@ impl UFrac8 {
     }
 
     #[must_use]
+    /// Get the other child of the fraction's parent node on the Farey tree. Returns `None` if called on `0` or `1`.
+    pub const fn sibling(self) -> Option<Self> {
+        let precision = self.precision();
+        if precision == 0 {
+            None
+        } else {
+            Some(Self(self.0 ^ (1 << (precision - 1))))
+        }
+    }
+
+    #[must_use]
+    /// Get the other child of the fraction's parent node on the Farey tree. Behavior is undefined if called on `0` or `1`.
+    pub const fn sibling_unchecked(self) -> Self {
+        Self(self.0 ^ (1 << (self.precision() - 1)))
+    }
+
+    #[must_use]
     /// Check if the value has the highest possible precision for `UFrac8`. If `true`, `left_child()` and `right_child()` will both return `None`.
     pub const fn is_leaf(self) -> bool {
         self.0 & (1 << 7) != 0
