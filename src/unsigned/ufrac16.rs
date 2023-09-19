@@ -1,5 +1,5 @@
 use std::{
-    cmp::{min, Ordering},
+    cmp::Ordering,
     fmt::{Debug, Display},
 };
 
@@ -9,7 +9,7 @@ use crate::{UFrac32, UFrac8};
 /// up to 15 bits of data
 /// `0b0001_xxxx_xxxx_xxxx`
 /// `0b001x_xxxx_xxxx_xxxx`
-#[derive(PartialEq, Eq, Default, Clone, Copy, Hash)]
+#[derive(PartialEq, Eq, Default, Clone, Copy, Hash, PartialOrd, Ord)]
 pub struct UFrac16(u16);
 
 impl Debug for UFrac16 {
@@ -25,64 +25,17 @@ impl Display for UFrac16 {
     }
 }
 
-impl PartialOrd for UFrac16 {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for UFrac16 {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let lhs_precision = self.precision();
-        let rhs_precision = other.precision();
-        #[cfg(test)]
-        println!("precision: {lhs_precision}, {rhs_precision}");
-        for i in 0..min(lhs_precision, rhs_precision) {
-            match (self.0 & (1 << i)).cmp(&(other.0 & (1 << i))) {
-                Ordering::Less => return Ordering::Less,
-                Ordering::Greater => return Ordering::Greater,
-                Ordering::Equal => {}
-            }
-        }
-        #[cfg(test)]
-        println!("Switching to difficult comparison");
-        match lhs_precision.cmp(&rhs_precision) {
-            Ordering::Equal => Ordering::Equal,
-            Ordering::Greater => {
-                if self.0 & (1 << (rhs_precision)) == 0 {
-                    Ordering::Less
-                } else {
-                    Ordering::Greater
-                }
-            }
-            Ordering::Less => {
-                #[cfg(test)]
-                println!("rhs more specific");
-                if other.0 & (1 << (lhs_precision)) == 0 {
-                    #[cfg(test)]
-                    println!("it's a 0");
-                    Ordering::Greater
-                } else {
-                    #[cfg(test)]
-                    println!("it's a 1");
-                    Ordering::Less
-                }
-            }
-        }
-    }
-}
-
 impl UFrac16 {
     pub const ZERO: Self = Self(0);
     /// Lowest non-zero value represented by `UFrac16`; equal to 1/16
-    pub const MIN: Self = Self(0x8000);
-    pub const ONE: Self = Self(1);
+    pub const MIN: Self = Self(1);
+    pub const ONE: Self = Self(0x8000);
     /// The Golden Ratio approximated as a `UFrac16`; equal to 987/610, or 1.61803278689
-    pub const GOLDEN_RATIO: Self = Self(0x5555);
+    pub const GOLDEN_RATIO: Self = Self(0xAAAA);
     /// Euler's Number approximated as a `UFrac16`; equal to 791/291, or 2.71821305842
-    pub const E: Self = Self(0xA85B);
+    pub const E: Self = Self(0xDA15);
     /// Pi approximated as a `UFrac16`; equal to 204/65, or 3.13846153846
-    pub const PI: Self = Self(0xBC07);
+    pub const PI: Self = Self(0xE03D);
     /// Highest value represented by `UFrac16`; equal to 16
     pub const MAX: Self = Self(0xffff);
 
@@ -97,9 +50,9 @@ impl UFrac16 {
         #[cfg(test)]
         println!("{self:?}; precision = {precision}");
         if precision == 0 {
-            return (self.0, 1);
+            return (self.0 >> 15, 1);
         }
-        let mask = u16::MAX >> (16 - precision);
+        let mask = u16::MAX << (16 - precision);
         let masked_bits = self.0 & mask;
         #[cfg(test)]
         println!("{self:?} & {mask:0>16b} => {masked_bits:0>16b}");
@@ -110,7 +63,7 @@ impl UFrac16 {
         let mut upper_num = 1;
         let mut upper_denom = 0;
         for i in 0..(precision) {
-            if masked_bits & (1 << i) == 0 {
+            if masked_bits & (1 << (15 - i)) == 0 {
                 upper_num = mid_num;
                 upper_denom = mid_denom;
                 mid_num += lower_num;
@@ -136,7 +89,7 @@ impl UFrac16 {
             return frac8;
         }
         #[allow(clippy::cast_possible_truncation)]
-        UFrac8::from_bits((self.0 & 0x00ff | 0x0080) as u8)
+        UFrac8::from_bits(((self.0 & 0xff00) >> 8) as u8)
     }
 
     /// The inverse of a `UFrac16`. For any nonzero value, `self.invert().invert()` is guaranteed to be equal to `self`.
@@ -148,7 +101,7 @@ impl UFrac16 {
         if self.0 == 0 {
             panic!("Can't invert `0/1`")
         } else {
-            Self(self.0 ^ ((1 << self.precision()) - 1))
+            self.invert_unchecked()
         }
     }
 
@@ -160,14 +113,20 @@ impl UFrac16 {
         if self.0 == 0 {
             None
         } else {
-            Some(Self(self.0 ^ ((1 << self.precision()) - 1)))
+            Some(self.invert_unchecked())
         }
     }
 
     /// The inverse of a `UFrac16`. If `self` is equal to `0`, returns `0`.
     #[must_use]
     pub const fn invert_unchecked(self) -> Self {
-        Self(self.0 ^ ((1 << self.precision()) - 1))
+        Self(
+            self.0
+                ^ match u16::MAX.checked_shl(self.0.trailing_zeros() + 1) {
+                    Some(mask) => mask,
+                    None => 0,
+                },
+        )
     }
 
     /// Construct a `UFrac16` from a bit pattern
@@ -187,17 +146,19 @@ impl UFrac16 {
     #[must_use]
     #[allow(clippy::cast_possible_truncation)]
     pub const fn precision(self) -> u16 {
-        15u16.saturating_sub(self.0.leading_zeros() as u16)
+        15u16.saturating_sub(self.0.trailing_zeros() as u16)
     }
 
     #[must_use]
     /// Get the fraction's parent node on the Farey tree. Returns `None` if `self` is 0 or 1.
     pub const fn parent(self) -> Option<Self> {
-        let precision = self.precision();
-        if precision == 0 {
+        let trailing_zeroes = self.0.trailing_zeros();
+        if trailing_zeroes >= 15 {
             None
         } else {
-            Some(Self(self.0 ^ (1 << precision) | (1 << (precision - 1))))
+            Some(Self(
+                self.0 ^ (1 << trailing_zeroes) | (1 << (trailing_zeroes - 1)),
+            ))
         }
     }
 
@@ -207,8 +168,10 @@ impl UFrac16 {
         if self.0 == 0 || self.is_leaf() {
             None
         } else {
-            let precision = self.precision();
-            Some(Self(self.0 & !(1 << precision) | (1 << (precision + 1))))
+            let trailing_zeroes = self.0.trailing_zeros();
+            Some(Self(
+                self.0 & !(1 << trailing_zeroes) | (1 << (trailing_zeroes - 1)),
+            ))
         }
     }
 
@@ -218,7 +181,7 @@ impl UFrac16 {
         if self.0 == 0 || self.is_leaf() {
             None
         } else {
-            Some(Self(self.0 | (1 << (self.precision() + 1))))
+            Some(Self(self.0 | (1 << (self.0.trailing_zeros() - 1))))
         }
     }
 
@@ -230,33 +193,34 @@ impl UFrac16 {
         if self.0 == 0 || self.is_leaf() {
             None
         } else {
-            let precision = self.precision();
-            let right_child = self.0 | (1 << (self.precision() + 1));
-            Some((Self(right_child & !(1 << precision)), Self(right_child)))
+            let right_child = self.0 | (1 << (self.0.trailing_zeros() - 1));
+            Some((
+                Self(right_child & !(1 << self.0.trailing_zeros())),
+                Self(right_child),
+            ))
         }
     }
 
     #[must_use]
     /// Get the other child of the fraction's parent node on the Farey tree. Returns `None` if called on `0` or `1`.
     pub const fn sibling(self) -> Option<Self> {
-        let precision = self.precision();
-        if precision == 0 {
+        if self.0 == Self::ZERO.0 || self.0 == Self::ONE.0 {
             None
         } else {
-            Some(Self(self.0 ^ (1 << (precision - 1))))
+            Some(Self(self.0 ^ (1 << (self.0.trailing_zeros() - 1))))
         }
     }
 
     #[must_use]
     /// Get the other child of the fraction's parent node on the Farey tree. Behavior is undefined if called on `0` or `1`.
     pub const fn sibling_unchecked(self) -> Self {
-        Self(self.0 ^ (1 << (self.precision() - 1)))
+        Self(self.0 ^ (1 << (self.0.trailing_zeros() - 1)))
     }
 
     #[must_use]
     /// Check if the value has the highest possible precision for `UFrac16`. If `true`, `left_child()` and `right_child()` will both return `None`.
     pub const fn is_leaf(self) -> bool {
-        self.0 & (1 << 15) != 0
+        self.0 & 1 != 0
     }
 }
 
@@ -266,10 +230,8 @@ impl TryFrom<u16> for UFrac16 {
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         if value == 0 {
             Ok(Self::ZERO)
-        } else if value == 16 {
-            Ok(Self(u16::MAX))
-        } else if value <= 15 {
-            Ok(Self((1u16 << value).wrapping_sub(1)))
+        } else if value <= 16 {
+            Ok(Self(u16::MAX << (16 - value)))
         } else {
             Err(())
         }
@@ -330,28 +292,28 @@ impl TryFrom<f64> for UFrac16 {
                     lower_precision = precision + 1;
                     mid_num += upper_num;
                     mid_denom += upper_denom;
-                    steps += 1 << precision;
+                    steps += 1 << (15 - precision);
                 }
             }
             precision += 1;
         }
         match (mid_num as f64).partial_cmp(&(value * mid_denom as f64)) {
-            Some(Ordering::Greater) => Ok(Self(upper_steps | (1 << upper_precision))),
-            Some(Ordering::Equal) | None => Ok(Self(steps | (1 << precision))),
-            Some(Ordering::Less) => Ok(Self(lower_steps | (1 << lower_precision))),
+            Some(Ordering::Greater) => Ok(Self(upper_steps | (1 << (15 - upper_precision)))),
+            Some(Ordering::Equal) | None => Ok(Self(steps | (1 << (15 - precision)))),
+            Some(Ordering::Less) => Ok(Self(lower_steps | (1 << (15 - lower_precision)))),
         }
     }
 }
 
 impl From<UFrac8> for UFrac16 {
     fn from(value: UFrac8) -> Self {
-        Self(u16::from(value.to_bits()))
+        Self(u16::from(value.to_bits()) << 8)
     }
 }
 
 impl TryFrom<UFrac32> for UFrac16 {
     type Error = ();
     fn try_from(value: UFrac32) -> Result<Self, Self::Error> {
-        Ok(Self(u16::try_from(value.to_bits()).map_err(|_| ())?))
+        Ok(Self(u16::try_from(value.to_bits() >> 16).map_err(|_| ())?))
     }
 }

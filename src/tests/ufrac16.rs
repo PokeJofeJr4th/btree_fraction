@@ -5,21 +5,21 @@ use crate::UFrac16;
 #[test]
 fn to_fraction() {
     assert_eq!(UFrac16::ONE.to_fraction(), (1, 1));
-    assert_eq!(UFrac16::from_bits(0x0002).to_fraction(), (1, 2));
-    assert_eq!(UFrac16::from_bits(0x0003).to_fraction(), (2, 1));
-    assert_eq!(UFrac16::from_bits(0x003f).to_fraction(), (6, 1));
-    assert_eq!(UFrac16::from_bits(0x007f).to_fraction(), (7, 1));
-    assert_eq!(UFrac16::from_bits(0x0020).to_fraction(), (1, 6));
-    assert_eq!(UFrac16::from_bits(0x0040).to_fraction(), (1, 7));
-    assert_eq!(UFrac16::from_bits(0x0012).to_fraction(), (4, 7));
-    assert_eq!(UFrac16::from_bits(0x0015).to_fraction(), (8, 5));
-    assert_eq!(UFrac16::from_bits(0x000d).to_fraction(), (5, 3));
+    assert_eq!(UFrac16::from_bits(0x4000).to_fraction(), (1, 2));
+    assert_eq!(UFrac16::from_bits(0xC000).to_fraction(), (2, 1));
+    assert_eq!(UFrac16::from_bits(0xFC00).to_fraction(), (6, 1));
+    assert_eq!(UFrac16::from_bits(0xFE00).to_fraction(), (7, 1));
+    assert_eq!(UFrac16::from_bits(0x0400).to_fraction(), (1, 6));
+    assert_eq!(UFrac16::from_bits(0x0200).to_fraction(), (1, 7));
+    assert_eq!(UFrac16::from_bits(0x4800).to_fraction(), (4, 7));
+    assert_eq!(UFrac16::from_bits(0xA800).to_fraction(), (8, 5));
+    assert_eq!(UFrac16::from_bits(0xB000).to_fraction(), (5, 3));
 }
 
 #[test]
 fn invert() {
     assert_eq!(UFrac16::ONE.invert().to_fraction(), (1, 1));
-    assert_eq!(UFrac16::from_bits(0x0012).invert().to_fraction(), (7, 4));
+    assert_eq!(UFrac16::from_bits(0x4800).invert().to_fraction(), (7, 4));
     assert_eq!(UFrac16::MIN.invert(), UFrac16::MAX);
     assert_eq!(UFrac16::MAX.invert(), UFrac16::MIN);
 }
@@ -82,8 +82,14 @@ fn ordering() {
 
 #[test]
 fn tree() {
-    assert_eq!(UFrac16::ONE.left_child().unwrap(), UFrac16::from_bits(2));
-    assert_eq!(UFrac16::ONE.right_child().unwrap(), UFrac16::from_bits(3));
+    assert_eq!(
+        UFrac16::ONE.left_child().unwrap(),
+        UFrac16::from_bits(0x4000)
+    );
+    assert_eq!(
+        UFrac16::ONE.right_child().unwrap(),
+        UFrac16::from_bits(0xC000)
+    );
     assert_eq!(UFrac16::ONE.parent(), None);
 
     assert_eq!(UFrac16::ZERO.left_child(), None);

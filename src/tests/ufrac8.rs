@@ -5,22 +5,23 @@ use crate::UFrac8;
 #[test]
 fn to_fraction() {
     assert_eq!(UFrac8::ONE.to_fraction(), (1, 1));
-    assert_eq!(UFrac8::from_bits(0b0000_0010).to_fraction(), (1, 2));
-    assert_eq!(UFrac8::from_bits(0b0000_0011).to_fraction(), (2, 1));
-    assert_eq!(UFrac8::from_bits(0b0011_1111).to_fraction(), (6, 1));
-    assert_eq!(UFrac8::from_bits(0b0111_1111).to_fraction(), (7, 1));
-    assert_eq!(UFrac8::from_bits(0b0010_0000).to_fraction(), (1, 6));
-    assert_eq!(UFrac8::from_bits(0b0100_0000).to_fraction(), (1, 7));
-    assert_eq!(UFrac8::from_bits(0b0001_0010).to_fraction(), (4, 7));
-    assert_eq!(UFrac8::from_bits(0b0001_0101).to_fraction(), (8, 5));
-    assert_eq!(UFrac8::from_bits(0b0000_1101).to_fraction(), (5, 3));
+    assert_eq!(UFrac8::from_bits(0b0100_0000).to_fraction(), (1, 2));
+    assert_eq!(UFrac8::from_bits(0b1100_0000).to_fraction(), (2, 1));
+    assert_eq!(UFrac8::from_bits(0b1111_1100).to_fraction(), (6, 1));
+    assert_eq!(UFrac8::from_bits(0b1111_1110).to_fraction(), (7, 1));
+    assert_eq!(UFrac8::from_bits(0b0000_0100).to_fraction(), (1, 6));
+    assert_eq!(UFrac8::from_bits(0b0000_0010).to_fraction(), (1, 7));
+    assert_eq!(UFrac8::from_bits(0b0100_1000).to_fraction(), (4, 7));
+    assert_eq!(UFrac8::from_bits(0b1010_1000).to_fraction(), (8, 5));
+    assert_eq!(UFrac8::from_bits(0b1011_0000).to_fraction(), (5, 3));
 }
 
 #[test]
 fn invert() {
+    assert_eq!(UFrac8::ONE.invert(), UFrac8::ONE);
     assert_eq!(UFrac8::ONE.invert().to_fraction(), (1, 1));
     assert_eq!(
-        UFrac8::from_bits(0b0001_0010).invert().to_fraction(),
+        UFrac8::from_bits(0b0100_1000).invert().to_fraction(),
         (7, 4)
     );
     assert_eq!(UFrac8::MIN.invert(), UFrac8::MAX);
@@ -92,8 +93,8 @@ fn ordering() {
 
 #[test]
 fn tree() {
-    assert_eq!(UFrac8::ONE.left_child().unwrap(), UFrac8::from_bits(2));
-    assert_eq!(UFrac8::ONE.right_child().unwrap(), UFrac8::from_bits(3));
+    assert_eq!(UFrac8::ONE.left_child().unwrap(), UFrac8::from_bits(0b0100_0000));
+    assert_eq!(UFrac8::ONE.right_child().unwrap(), UFrac8::from_bits(0b1100_0000));
     assert_eq!(UFrac8::ONE.parent(), None);
 
     assert_eq!(UFrac8::ZERO.left_child(), None);
