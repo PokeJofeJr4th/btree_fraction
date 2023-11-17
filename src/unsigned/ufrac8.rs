@@ -3,7 +3,7 @@ use std::{
     fmt::{Debug, Display},
 };
 
-use crate::{UFrac16, UFrac32};
+use crate::{UFrac16, UFrac32, UFrac64};
 
 /// A fraction defined along a binary tree.
 ///
@@ -305,5 +305,13 @@ impl TryFrom<UFrac32> for UFrac8 {
     /// Try to fit a `UFrac32` into a `UFrac8`. Returns `Err(())` if passed a value with 8 or more bits of precision. If you would like to truncate the value instead, try `UFrac32::to_ufrac8_lossy`.
     fn try_from(value: UFrac32) -> Result<Self, Self::Error> {
         Ok(Self(u8::try_from(value.to_bits() >> 24).map_err(|_| ())?))
+    }
+}
+
+impl TryFrom<UFrac64> for UFrac8 {
+    type Error = ();
+    /// Try to fit a `UFrac64` into a `UFrac8`. Returns `Err(())` if passed a value with 8 or more bits of precision. If you would like to truncate the value instead, try `UFrac64::to_ufrac8_lossy`.
+    fn try_from(value: UFrac64) -> Result<Self, Self::Error> {
+        Ok(Self(u8::try_from(value.to_bits() >> 56).map_err(|_| ())?))
     }
 }

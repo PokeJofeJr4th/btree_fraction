@@ -1,4 +1,4 @@
-use btree_fraction::{UFrac16, UFrac32, UFrac8};
+use btree_fraction::{UFrac16, UFrac32, UFrac64, UFrac8};
 
 fn main() {
     let e = UFrac8::try_from(std::f64::consts::E).unwrap();
@@ -7,4 +7,6 @@ fn main() {
     println!("{e} = {e:?} = {}", UFrac16::E);
     let e = UFrac32::try_from(std::f64::consts::E).unwrap();
     println!("{e} = {e:?} = {}", UFrac32::E);
+    let e = UFrac64::try_from(std::f64::consts::E).unwrap();
+    println!("{e} = {e:?} = {}", UFrac64::E);
 }

@@ -5,6 +5,4 @@ mod tests;
 mod unsigned;
 
 pub use ifrac8::IFrac8;
-pub use unsigned::UFrac16;
-pub use unsigned::UFrac32;
-pub use unsigned::UFrac8;
+pub use unsigned::{UFrac16, UFrac32, UFrac64, UFrac8};

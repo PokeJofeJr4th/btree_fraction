@@ -3,41 +3,41 @@ use std::{
     fmt::{Debug, Display},
 };
 
-use crate::{UFrac16, UFrac64, UFrac8};
+use crate::{UFrac16, UFrac32, UFrac8};
 
 /// A fraction defined along a binary tree.
 /// up to 31 bits of data
 /// `0b0000_1xxx_xxxx_xxxx_xxxx_xxxx_xxxx_xxxx`
 /// `0b0001_xxxx_xxxx_xxxx_xxxx_xxxx_xxxx_xxxx`
 #[derive(PartialEq, Eq, Default, Clone, Copy, Hash, PartialOrd, Ord)]
-pub struct UFrac32(u32);
+pub struct UFrac64(u64);
 
-impl Debug for UFrac32 {
+impl Debug for UFrac64 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:0>32b}", self.0)
+        write!(f, "{:0>64b}", self.0)
     }
 }
 
-impl Display for UFrac32 {
+impl Display for UFrac64 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let (num, denom) = self.to_fraction();
         write!(f, "{num}/{denom}")
     }
 }
 
-impl UFrac32 {
+impl UFrac64 {
     pub const ZERO: Self = Self(0);
-    /// Smallest non-zero value represented by `UFrac32`; equal to 1/32
+    /// Smallest non-zero value represented by `UFrac64`; equal to 1/32
     pub const MIN: Self = Self(1);
     pub const ONE: Self = Self(0x8000_0000);
-    /// The Golden Ratio approximated as a `UFrac32`; equal to 2178309/1346269 or 1.61803398875
-    pub const GOLDEN_RATIO: Self = Self(0xAAAA_AAAA);
-    /// Euler's Number approximated as a `UFrac32`; equal to 28667/10546 or 2.71828181301
-    pub const E: Self = Self(0xDA17_E802);
-    /// Pi approximated as a `UFrac32`; equal to 3861/1229 or 3.14157851912
-    pub const PI: Self = Self(0xE03F_FFBD);
-    /// Highest value represented by `UFrac32`; equal to 32
-    pub const MAX: Self = Self(0xFFFF_FFFF);
+    /// The Golden Ratio approximated as a `UFrac64`; equal to  or 1.61803398875
+    pub const GOLDEN_RATIO: Self = Self(0xAAAA_AAAA_AAAA_AAAA);
+    /// Euler's Number approximated as a `UFrac64`; equal to 340033231/125091235 or 2.718281828459044
+    pub const E: Self = Self(0xDA17_E805_FFA0_017D);
+    /// Pi approximated as a `UFrac64`; equal to 26581/8461 or 3.1415908285072685
+    pub const PI: Self = Self(0xE03F_FFBF_FFFF_FFFD);
+    /// Highest value represented by `UFrac64`; equal to 64
+    pub const MAX: Self = Self(0xFFFF_FFFF_FFFF_FFFF);
 
     /// Convert a `BTreeFraction` into two `u8`s representing the numerator and denominator. Infinity is represented by `(1, 0)`.
     ///
@@ -45,17 +45,17 @@ impl UFrac32 {
     ///
     /// Panics if the internal format is an invalid bit pattern. This should only happen if you manually set the bits.
     #[must_use]
-    pub fn to_fraction(self) -> (u32, u32) {
+    pub fn to_fraction(self) -> (u64, u64) {
         let precision = self.precision();
         #[cfg(test)]
         println!("{self:?}; precision = {precision}");
         if precision == 0 {
-            return (self.0 >> 31, 1);
+            return (self.0 >> 63, 1);
         }
-        let mask = u32::MAX << (32 - precision);
+        let mask = u64::MAX << (64 - precision);
         let masked_bits = self.0 & mask;
         #[cfg(test)]
-        println!("{self:?} & {mask:0>32b} => {masked_bits:0>32b}");
+        println!("{self:?} & {mask:0>64b} => {masked_bits:0>64b}");
         let mut lower_num = 0;
         let mut lower_denom = 1;
         let mut mid_num = 1;
@@ -63,7 +63,7 @@ impl UFrac32 {
         let mut upper_num = 1;
         let mut upper_denom = 0;
         for i in 0..(precision) {
-            if masked_bits & (1 << (31 - i)) == 0 {
+            if masked_bits & (1 << (63 - i)) == 0 {
                 upper_num = mid_num;
                 upper_denom = mid_denom;
                 mid_num += lower_num;
@@ -89,7 +89,7 @@ impl UFrac32 {
             return frac8;
         }
         #[allow(clippy::cast_possible_truncation)]
-        UFrac8::from_bits((self.0 >> 24) as u8)
+        UFrac8::from_bits((self.0 >> 56) as u8)
     }
 
     #[must_use]
@@ -101,7 +101,7 @@ impl UFrac32 {
             return frac8;
         }
         #[allow(clippy::cast_possible_truncation)]
-        UFrac16::from_bits((self.0 >> 16) as u16)
+        UFrac16::from_bits((self.0 >> 48) as u16)
     }
 
     /// The inverse of a `UFrac32`. For any nonzero value, `self.invert().invert()` is guaranteed to be equal to `self`.
@@ -117,7 +117,7 @@ impl UFrac32 {
         }
     }
 
-    /// The inverse of a `UFrac32`. If `self` is equal to `0`, returns `None`.
+    /// The inverse of a `UFrac64`. If `self` is equal to `0`, returns `None`.
     ///
     /// For any nonzero value, `self.invert().unwrap().invert().unwrap()` is guaranteed to be equal to `self`.
     #[must_use]
@@ -129,42 +129,42 @@ impl UFrac32 {
         }
     }
 
-    /// The inverse of a `UFrac32`. If `self` is equal to `0`, returns `0`.
+    /// The inverse of a `UFrac64`. If `self` is equal to `0`, returns `0`.
     #[must_use]
     pub const fn invert_unchecked(self) -> Self {
         Self(
             self.0
-                ^ match u32::MAX.checked_shl(self.0.trailing_zeros() + 1) {
+                ^ match u64::MAX.checked_shl(self.0.trailing_zeros() + 1) {
                     Some(mask) => mask,
                     None => 0,
                 },
         )
     }
 
-    /// Construct a `UFrac32` from a bit pattern
+    /// Construct a `UFrac64` from a bit pattern
     #[must_use]
-    pub const fn from_bits(bits: u32) -> Self {
+    pub const fn from_bits(bits: u64) -> Self {
         Self(bits)
     }
 
-    /// Get the bit pattern out of a `UFrac32`
+    /// Get the bit pattern out of a `UFrac64`
     #[must_use]
-    pub const fn to_bits(self) -> u32 {
+    pub const fn to_bits(self) -> u64 {
         self.0
     }
 
-    /// Get the precision of a value. This will be a value from 0 to 31 representing how many steps down the Farey tree the fraction is.
+    /// Get the precision of a value. This will be a value from 0 to 63 representing how many steps down the Farey tree the fraction is.
     /// If `self` is equal to `0` or `1`, this function will return `0`.
     #[must_use]
     pub const fn precision(self) -> u32 {
-        31u32.saturating_sub(self.0.trailing_zeros())
+        63u32.saturating_sub(self.0.trailing_zeros())
     }
 
     #[must_use]
     /// Get the fraction's parent node on the Farey tree. Returns `None` if `self` is 0 or 1.
     pub const fn parent(self) -> Option<Self> {
         let trailing_zeroes = self.0.trailing_zeros();
-        if trailing_zeroes >= 31 {
+        if trailing_zeroes >= 63 {
             None
         } else {
             Some(Self(
@@ -236,14 +236,14 @@ impl UFrac32 {
     }
 }
 
-impl TryFrom<u32> for UFrac32 {
+impl TryFrom<u64> for UFrac64 {
     type Error = ();
-    /// Try to create an integer `UFrac32`. Returns `Err(())` if passed a value greater than or equal to 33.
-    fn try_from(value: u32) -> Result<Self, Self::Error> {
+    /// Try to create an integer `UFrac64`. Returns `Err(())` if passed a value greater than or equal to 65.
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
         if value == 0 {
             Ok(Self::ZERO)
-        } else if value <= 32 {
-            Ok(Self(u32::MAX << (32 - value)))
+        } else if value <= 64 {
+            Ok(Self(u64::MAX << (64 - value)))
         } else {
             Err(())
         }
@@ -256,9 +256,9 @@ impl TryFrom<u32> for UFrac32 {
     clippy::cast_precision_loss,
     clippy::cast_lossless
 )]
-impl TryFrom<f64> for UFrac32 {
+impl TryFrom<f64> for UFrac64 {
     type Error = ();
-    /// Try to create a `UFrac32` approximating a float. Returns `Err(())` if passed a negative or `NaN` value.
+    /// Try to create a `UFrac64` approximating a float. Returns `Err(())` if passed a negative or `NaN` value.
     fn try_from(value: f64) -> Result<Self, Self::Error> {
         if value == 0.0 {
             #[cfg(test)]
@@ -280,7 +280,7 @@ impl TryFrom<f64> for UFrac32 {
         let mut precision = 0;
         let mut steps = 0;
         loop {
-            if precision >= 31 {
+            if precision >= 63 {
                 break;
             }
             match (mid_num as f64).partial_cmp(&(value * mid_denom as f64)) {
@@ -304,34 +304,33 @@ impl TryFrom<f64> for UFrac32 {
                     lower_precision = precision + 1;
                     mid_num += upper_num;
                     mid_denom += upper_denom;
-                    steps += 1 << (31 - precision);
+                    steps += 1 << (63 - precision);
                 }
             }
             precision += 1;
         }
         match (mid_num as f64).partial_cmp(&(value * mid_denom as f64)) {
-            Some(Ordering::Greater) => Ok(Self(upper_steps | (1 << (31 - upper_precision)))),
-            Some(Ordering::Equal) | None => Ok(Self(steps | (1 << (31 - precision)))),
-            Some(Ordering::Less) => Ok(Self(lower_steps | (1 << (31 - lower_precision)))),
+            Some(Ordering::Greater) => Ok(Self(upper_steps | (1 << (63 - upper_precision)))),
+            Some(Ordering::Equal) | None => Ok(Self(steps | (1 << (63 - precision)))),
+            Some(Ordering::Less) => Ok(Self(lower_steps | (1 << (63 - lower_precision)))),
         }
     }
 }
 
-impl From<UFrac8> for UFrac32 {
+impl From<UFrac8> for UFrac64 {
     fn from(value: UFrac8) -> Self {
-        Self(u32::from(value.to_bits()) << 24)
+        Self(u64::from(value.to_bits()) << 56)
     }
 }
 
-impl From<UFrac16> for UFrac32 {
+impl From<UFrac16> for UFrac64 {
     fn from(value: UFrac16) -> Self {
-        Self(u32::from(value.to_bits()) << 16)
+        Self(u64::from(value.to_bits()) << 48)
     }
 }
 
-impl TryFrom<UFrac64> for UFrac32 {
-    type Error = ();
-    fn try_from(value: UFrac64) -> Result<Self, Self::Error> {
-        Ok(Self(u32::try_from(value.to_bits() >> 32).map_err(|_| ())?))
+impl From<UFrac32> for UFrac64 {
+    fn from(value: UFrac32) -> Self {
+        Self(u64::from(value.to_bits()) << 32)
     }
 }
